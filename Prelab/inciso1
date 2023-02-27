@@ -1,0 +1,25 @@
+digraph {
+	graph [rankdir=LR]
+	s0 [fillcolor=aqua style=filled]
+	s11 [fillcolor=skyblue style=filled]
+	s0
+	s1
+	s5
+	s7
+	s8
+	s9
+	s2
+	s3
+	s0 -> s1 [label=a]
+	s1 -> s5 [label="#"]
+	s1 -> s2 [label="#"]
+	s5 -> s7 [label=a]
+	s7 -> s11 [label="#"]
+	s7 -> s8 [label="#"]
+	s8 -> s9 [label=b]
+	s9 -> s11 [label="#"]
+	s9 -> s8 [label="#"]
+	s2 -> s3 [label=b]
+	s3 -> s5 [label="#"]
+	s3 -> s2 [label="#"]
+}

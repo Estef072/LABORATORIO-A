@@ -1,8 +1,71 @@
 from State import State
 from Automata import Automata
 
+def InfixPostfix(regex:str):
+    if PosiblesErrores(regex)==False:
+        return None
+    precedence = {"|": 0, ".": 1, "*": 2, "+": 2, "?": 2}
+    newRegex = ""
+    #Agrega un signo ? cada vez que hay una concatenación
+    for i in range(len(regex)):
+        if i == len(regex)-1:
+            newRegex += regex[i]
+        else:
+            if regex[i+1] not in precedence.keys() and regex[i+1]!= ")":
+                if regex[i] == "*":
+                    newRegex += regex[i]
+                    newRegex += "."
+                elif regex[i] == "?":
+                    newRegex += regex[i]
+                    newRegex += "."
+                elif regex[i] == "+":
+                    newRegex += regex[i]
+                    newRegex += "."
+                elif regex[i] not in precedence.keys() and regex[i]!="(":
+                    newRegex += regex[i]
+                    newRegex+= "."
+                else:
+                    newRegex+=regex[i]
+            else:
+                newRegex +=regex[i]
+                
+    postfixString = ""
+    operatorStack = []
+    regex = newRegex
+    #convertir infix postfix
+    for i in regex:
+        #print(i)
+        if i in precedence.keys() or i=="(" or i == ")":
+            if len(operatorStack)==0 or operatorStack[-1]=="(" or i == "(":
+                operatorStack.append(i)
+            elif i == ")":
+                check = ""
+                while check!="(":
+
+                    postfixString += operatorStack.pop()
+                    check = operatorStack[-1]
+                operatorStack.pop()
+            elif precedence[i] < precedence[operatorStack[-1]]:
+                while precedence[i] < precedence[operatorStack[-1]]:
+                    postfixString += operatorStack.pop()
+                    if len(operatorStack) == 0 or operatorStack[-1]=="(":
+                       break
+                operatorStack.append(i)
+            elif precedence[i] > precedence[operatorStack[-1]]:
+                operatorStack.append(i)
+            elif precedence[i] == precedence[operatorStack[-1]]:
+                postfixString += operatorStack.pop()
+                operatorStack.append(i)
+                
+        else:
+            postfixString += i
+        #print("stack: ", operatorStack, "string: ", postfixString)
+    while len(operatorStack)!=0:
+        postfixString += operatorStack.pop()
+    return (postfixString)
 
 def Thompson(expression:str):
+    expression = InfixPostfix(expression)   
     stack = []
     # "#" representa epsilon
     contador = 0
@@ -16,8 +79,8 @@ def Thompson(expression:str):
         #con char2: S2 -> S4
         #con espsilon: S3 -> S5 (final)
         #con espsilon: S4 -> S5 (final)
-
-        if i == "+":
+        
+        if i == "|":
             inicio = State(name = f's{contador}')
             contador+=1
             end = State(name = f's{contador}')
@@ -30,16 +93,37 @@ def Thompson(expression:str):
             afn = Automata(inicio, end)
             stack.append(afn)
             
+        elif i == "+":
+            inicio = State(name = f's{contador}')
+            contador+=1
+            end = State(name = f's{contador}')
+            afn1 = stack.pop()
+            inicio.AddTransition(afn1.start, "#")
+            afn1.final.AddTransition(afn1.start, "#")
+            afn1.final.AddTransition(end, "#")
+            afn = Automata(inicio, end)
+            stack.append(afn)
         
-        #CONCATENACIÓN
-        #Forma:
-        #con char1: S0 (inicio) -> S1
-        #con char2: S1 -> S2 (final)
-        elif i == "?":
+        elif i == ".":
             afn1 = stack.pop()
             afn2 = stack.pop()
             afn2.final.transitions = afn1.start.transitions
             afn = Automata(afn2.start, afn1.final)
+            stack.append(afn)
+            
+            
+        
+
+        elif i == "?":
+    
+            inicio = State(name = f's{contador}')
+            contador+=1
+            end = State(name = f's{contador}')
+            afn1 = stack.pop()
+            inicio.AddTransition(afn1.start, "#")
+            afn1.final.AddTransition(end, "#")
+            inicio.AddTransition(end, "#")
+            afn = Automata(inicio, end)
             stack.append(afn)
             
         #Estrella de Kleene
@@ -76,80 +160,15 @@ def Thompson(expression:str):
 
             afn = Automata(start = inicio, final = end)
             stack.append(afn)
-        if i!="?":
+        if i!=".":
             contador +=1
     return stack.pop()
 
-#Convertir la expresión de infix (normal) a postfix
-#params:
-#@regex -> str Expresión regular a convertir
-def InfixPostfix(regex:str):
-    #precedence = {"+": 0, "-": 0, "*": 1, "/":1, "^":2, }
-    precedence = {"+": 0, "?": 1, "*": 2}
-    newRegex = ""
+
+def PosiblesErrores(regex: str):
+    operadores = ["|","*","+",".","?"]
+    if not regex:
+        return False
     
-    #Agrega un signo ? cada vez que hay una concatenación
-    for i in range(len(regex)):
-        if i == len(regex)-1:
-            newRegex += regex[i]
-        else:
-            if regex[i+1] not in precedence.keys() and regex[i+1]!= ")":
-                if regex[i] == "*":
-                    newRegex += regex[i]
-                    newRegex += "?"
-                elif regex[i] not in precedence.keys() and regex[i]!="(":
-                    newRegex += regex[i]
-                    newRegex+= "?"
-                else:
-                    newRegex+=regex[i]
-            else:
-                newRegex +=regex[i]
-                
-    print(newRegex)
-    postfixString = ""
-    operatorStack = []
-    regex = newRegex
-    #convertir infix postfix
-    for i in regex:
-        #print(i)
-        if i in precedence.keys() or i=="(" or i == ")":
-            if len(operatorStack)==0 or operatorStack[-1]=="(" or i == "(":
-                operatorStack.append(i)
-            elif i == ")":
-                check = ""
-                while check!="(":
-
-                    postfixString += operatorStack.pop()
-                    check = operatorStack[-1]
-                operatorStack.pop()
-            elif precedence[i] < precedence[operatorStack[-1]]:
-                while precedence[i] < precedence[operatorStack[-1]]:
-                    postfixString += operatorStack.pop()
-                    if len(operatorStack) == 0 or operatorStack[-1]=="(":
-                       break
-                operatorStack.append(i)
-            elif precedence[i] > precedence[operatorStack[-1]]:
-                operatorStack.append(i)
-            elif precedence[i] == precedence[operatorStack[-1]]:
-                postfixString += operatorStack.pop()
-                operatorStack.append(i)
-                
-        else:
-            postfixString += i
-        print(i, operatorStack, postfixString)
-        #print("stack: ", operatorStack, "string: ", postfixString)
-    while len(operatorStack)!=0:
-        postfixString += operatorStack.pop()
-    print(f"{regex} -> {postfixString}")
-    return (postfixString)
-
-s = "(a+b)*(abba*+(ab)*ba)"
-print(s)
-InfixPostfix(s)
-
-''' aut = Thompson(InfixPostfix(s)) '''
-''' print(Thompson(InfixPostfix(s)).Transiciones())
-print(" ")
-Thompson(InfixPostfix(s)).show() '''
-   
-    
+    if regex[0] in operadores:
+        return False
